@@ -12,8 +12,10 @@ uv venv --python 3.14
 # Acvivate with given command from uv output
 ```
 
-## Sync dependencies
+## Dependencies management
 
 ```shell
+uv add *stuff*
+
 uv sync
 ```
