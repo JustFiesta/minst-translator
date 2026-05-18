@@ -22,7 +22,7 @@ ARCH: → see SHARED.ARCH
       src/data/extract.py        → build_feature_matrix (done)
       src/data/split.py          → stratified_split (done)
       src/model/train.py         → train_and_save, CLI via __main__ (done)
-      src/model/evaluate.py      → pending
+      src/model/evaluate.py      → evaluate (done)
       src/inference/protocol.py  → FeatureSource Protocol (done)
       src/inference/predict.py   → pending
       src/inference/csv_source.py → pending
