@@ -5,8 +5,9 @@ alwaysApply: true
 
 # pjm-translator — AI Guidance
 
-This project uses a shared instruction set in `.ai/`. Always read the relevant files
-before starting work.
+This project uses a shared instruction set in `.ai/`. **Before starting any task,
+read every file listed in the Required reading table that applies to the task type.**
+Do not skip this step even for small changes.
 
 ## Required reading
 
@@ -19,6 +20,13 @@ before starting work.
 | `.ai/agents/developer.md` | When acting as implementation engineer |
 | `.ai/agents/reviewer.md` | When acting as code reviewer |
 
+Reading order for a typical implementation task:
+1. `.ai/context/project.md` — understand current state
+2. `.ai/workflows/research-plan-act.md` — follow the RPA process
+3. `.ai/standards/coding.md` — apply before writing any code
+4. `.ai/agents/developer.md` — act as developer (includes ATOMIC_STOP_RULE)
+5. `.ai/agents/reviewer.md` — review each atomic unit before presenting to user
+
 ## Quick rules
 
 - **Python 3.14 + uv.** Do not change `pyproject.toml` without user approval.
@@ -28,3 +36,50 @@ before starting work.
 - **⚠️ REQUIRES USER APPROVAL** before: adding/removing deps, deleting files,
   modifying CI/CD, or any destructive operation.
 - Keep `main.py` thin; logic belongs in `src/`.
+
+## Agent roles and switching
+
+Each role has a dedicated file in `.ai/agents/`. Read the relevant file before acting in that role.
+
+| Role | File | When to activate |
+|------|------|-----------------|
+| Developer | `.ai/agents/developer.md` | Implementing a feature, fixing a bug, creating a new module |
+| Reviewer | `.ai/agents/reviewer.md` | After every atomic unit of work (see ATOMIC_STOP_RULE in developer.md) |
+| Data Engineer | `.ai/agents/data-engineer.md` | Working on data pipelines, ingestion, feature extraction |
+| MLOps | `.ai/agents/mlops.md` | Working on training workflows, CI/CD, model artifacts |
+
+### Switching rules
+
+- **Developer → Reviewer**: switch after completing every atomic unit (function, module,
+  protocol file, test file). Run the full reviewer checklist before presenting to user.
+- **Reviewer → Developer**: switch back after the review passes (no BLOCKERs) and the
+  user replies "continue".
+- **Developer → Data Engineer**: switch when the task is data pipeline work
+  (ingest, extract, split, schema validation). Read `.ai/agents/data-engineer.md`.
+- **Developer → MLOps**: switch when the task involves training workflows, GitHub Actions,
+  or model artifact management. Read `.ai/agents/mlops.md`.
+- **Any role → Plan mode**: switch when requirements are unclear, the task spans ≥ 3 modules,
+  or meaningful architectural trade-offs exist. Present a plan and wait for user approval.
+
+### Role cycle per atomic unit
+
+```
+Read required .ai/ files
+        │
+        ▼
+  [DEVELOPER] implement one atomic unit
+        │
+        ▼
+  [REVIEWER]  correctness · standards · arch · tests · gates · context
+        │
+        ├── BLOCKER found → fix before presenting
+        │
+        ▼
+  Present to user + suggest commit message (ATOMIC_STOP_RULE)
+        │
+  user: "continue"
+        │
+        ▼
+  [DEVELOPER] next atomic unit
+```
+

@@ -76,32 +76,42 @@ RULE: High-level modules MUST NOT depend on low-level implementation details.
 Define Protocol in `<subpackage>/protocol.py`:
 
 ```python
-# src/input/protocol.py
-from typing import Protocol
-import numpy as np
+# src/inference/protocol.py
+from __future__ import annotations
+from typing import TYPE_CHECKING, Protocol
 
-class FrameSource(Protocol):
-    def read(self) -> np.ndarray: ...
+if TYPE_CHECKING:
+    import numpy as np
+
+class FeatureSource(Protocol):
+    def read_features(self) -> np.ndarray: ...
     def release(self) -> None: ...
 ```
+
+Use `TYPE_CHECKING` guard to avoid importing heavy packages (numpy, pandas) at module
+load time — keeps import cost zero for code that only type-checks against the Protocol.
 
 Concrete implementations satisfy the protocol without inheriting from it:
 
 ```python
-# src/input/webcam.py
-class WebcamSource:
-    def read(self) -> np.ndarray: ...
+# src/inference/csv_source.py
+class CsvRowSource:
+    def read_features(self) -> np.ndarray: ...
     def release(self) -> None: ...
 ```
 
 High-level code depends on the abstraction only:
 
 ```python
-# src/pipeline.py
-from src.input.protocol import FrameSource
+# src/inference/predict.py
+from src.inference.protocol import FeatureSource
 
-def run_pipeline(source: FrameSource) -> None: ...
+def predict_sign(clf, source: FeatureSource) -> str: ...
 ```
+
+Active Protocol files in this project:
+  src/data/protocol.py      → DatasetSource (training data source)
+  src/inference/protocol.py → FeatureSource (inference input source)
 
 - Use `typing.Protocol` for structural (duck-typed) interfaces
 - Use `abc.ABC` + `@abstractmethod` when enforced inheritance is required

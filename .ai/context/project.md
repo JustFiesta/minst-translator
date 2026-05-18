@@ -4,21 +4,31 @@ IMPORT: .ai/shared.md
 
 PURPOSE:
   Real-time PJM → Polish translation.
-  Stage: early scaffold — main.py and data/explore.py are stubs; src/ not yet created.
+  Stage: in development — src/ scaffold created; data pipeline and model modules in progress.
   Dataset: https://www.kaggle.com/datasets/adamlaput/sign-language-pjm
 
 STACK: → see SHARED.STACK
   future-deps (⚠️ GATE before adding any):
-    - OpenCV / MediaPipe  → video capture + hand-landmark extraction
-    - PyTorch / TensorFlow → model training + inference
+    - OpenCV / MediaPipe  → video capture + hand-landmark extraction (Python 3.14 compat TBD)
 
 ARCH: → see SHARED.ARCH
   current status:
-    main.py            → stub (prints hello; TODO: delegate to src/)
-    data/explore.py    → stub (single TODO comment)
-    src/               → NOT YET CREATED
-    tests/             → NOT YET CREATED
-    .github/workflows/ → ci.yaml and train.yaml are single-line TODOs
+    main.py                      → stub (prints hello; CLI wiring pending)
+    data/explore.py              → stub (single TODO comment)
+    data/raw/                    → 550-points.csv + PJM-points.csv present (gitignored)
+    src/                         → package scaffold created
+      src/data/protocol.py       → DatasetSource Protocol (done)
+      src/data/ingest.py         → pending
+      src/data/extract.py        → pending
+      src/data/split.py          → pending
+      src/model/train.py         → pending
+      src/model/evaluate.py      → pending
+      src/inference/protocol.py  → FeatureSource Protocol (done)
+      src/inference/predict.py   → pending
+      src/inference/csv_source.py → pending
+      src/inference/camera.py    → pending (optional, MediaPipe compat)
+    tests/                       → NOT YET CREATED
+    .github/workflows/           → ci.yaml and train.yaml are single-line TODOs
 
 CONVENTIONS:
   naming:      → see SHARED.NAMING
@@ -27,10 +37,16 @@ CONVENTIONS:
   type_hints:  MUST on all public function signatures
   docstrings:  Google-style on all public functions and classes
   line_length: 88 chars (Black-compatible)
-  formatter:   Black + Ruff (planned; not yet configured)
+  formatter:   Ruff (configured; linting active)
 
 DEPS:
-  numpy >= 2.4.4 → numerical arrays; foundation for future CV/ML work
+  numpy>=2.4.4       → numerical arrays
+  pandas>=3.0.3      → CSV loading and DataFrame operations
+  scikit-learn>=1.8.0 → SVC / RandomForest classifier + train_test_split
+  joblib>=1.5.3      → model serialisation (.pkl)
+  pytest>=9.0.3      → test runner
+  pytest-cov>=7.1.0  → coverage reporting
+  ruff>=0.15.13      → linter
 
 DEV_SETUP:
   pip install uv
