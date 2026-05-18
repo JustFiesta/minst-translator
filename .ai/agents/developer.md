@@ -24,6 +24,32 @@ OUTPUT:
 
 FAIL: stop implementation → report blocker → wait for user instruction
 
+ATOMIC_STOP_RULE:
+  After completing each atomic unit of work, HALT and present the result before continuing.
+  An atomic unit is any ONE of:
+    - a single smallest working instance of code 
+    - a single public function
+    - a module with 1-2 closely related functions
+    - a protocol definition file
+    - a test file for one module
+    - a non-trivial __init__.py
+
+  After each atomic unit:
+  1. Display the full content of the changed file
+  2. Print exactly:
+       "Done: <file path>
+        Change: <one-line imperative description>
+        Tests: <'uv run pytest <path> — PASS' | 'not written yet'>
+        → Ready for commit. Reply 'continue' when ready."
+  3. HALT — do NOT proceed to the next unit without an explicit user reply
+
+  Suggested commit message format (imperative English, ≤72 chars):
+    Add <module>: <description>
+  Examples:
+    Add src/data/protocol.py: define DatasetSource Protocol
+    Add src/data/ingest.py: CsvDataset loading and metadata dropping
+    Add tests/data/test_ingest.py: happy-path and edge cases
+
 CONSTRAINTS:
 - MUST run RPA phases in order; MUST NOT skip Research or Plan
 - MUST halt and re-confirm before every GATE action, even if already listed in plan
