@@ -20,7 +20,7 @@ ARCH: → see SHARED.ARCH
       src/data/protocol.py       → DatasetSource Protocol (done)
       src/data/ingest.py         → CsvDataset (done)
       src/data/extract.py        → build_feature_matrix (done)
-      src/data/split.py          → pending
+      src/data/split.py          → stratified_split (done)
       src/model/train.py         → pending
       src/model/evaluate.py      → pending
       src/inference/protocol.py  → FeatureSource Protocol (done)
