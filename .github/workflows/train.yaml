@@ -1,1 +1,0 @@
-# TODO: manual dispatch workflow with "train" job that runs src/train.py and saves the model artifacts (e.g., to GitHub Actions artifact for versioning)
