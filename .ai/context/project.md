@@ -27,7 +27,7 @@ ARCH: → see SHARED.ARCH
       src/inference/predict.py   → load_model, predict_sign (done)
       src/inference/csv_source.py → CsvRowSource (done)
       src/inference/camera.py    → pending (optional, MediaPipe compat)
-    tests/                       → NOT YET CREATED
+    tests/                       → scaffold + conftest.py (done); test files pending
     .github/workflows/           → ci.yaml and train.yaml are single-line TODOs
 
 CONVENTIONS:
