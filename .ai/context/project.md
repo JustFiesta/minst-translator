@@ -13,7 +13,7 @@ STACK: → see SHARED.STACK
 
 ARCH: → see SHARED.ARCH
   current status:
-    main.py                      → stub (prints hello; CLI wiring pending)
+    main.py                      → CLI with train/eval/infer modes (done)
     data/explore.py              → stub (single TODO comment)
     data/raw/                    → 550-points.csv + PJM-points.csv present (gitignored)
     src/                         → package scaffold created
