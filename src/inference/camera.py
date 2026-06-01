@@ -84,7 +84,7 @@ def _landmarks_to_bbox(
         int((max(xs) - min(xs)) * frame_w),
         int((max(ys) - min(ys)) * frame_h),
     )
-    half = int(span_px / 2 * (1 + _BBOX_PAD))
+    half = int(span_px / 10 * (6 + _BBOX_PAD))
 
     x1 = max(0, cx_px - half)
     y1 = max(0, cy_px - half)
