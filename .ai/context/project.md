@@ -25,7 +25,7 @@ ARCH: → see SHARED.ARCH
       src/model/evaluate.py      → evaluate (done)
       src/inference/protocol.py  → FeatureSource Protocol (done)
       src/inference/predict.py   → load_model, predict_sign (done)
-      src/inference/csv_source.py → pending
+      src/inference/csv_source.py → CsvRowSource (done)
       src/inference/camera.py    → pending (optional, MediaPipe compat)
     tests/                       → NOT YET CREATED
     .github/workflows/           → ci.yaml and train.yaml are single-line TODOs
