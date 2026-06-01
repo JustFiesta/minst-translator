@@ -24,7 +24,7 @@ ARCH: → see SHARED.ARCH
       src/model/train.py         → train_and_save, CLI via __main__ (done)
       src/model/evaluate.py      → evaluate (done)
       src/inference/protocol.py  → FeatureSource Protocol (done)
-      src/inference/predict.py   → pending
+      src/inference/predict.py   → load_model, predict_sign (done)
       src/inference/csv_source.py → pending
       src/inference/camera.py    → pending (optional, MediaPipe compat)
     tests/                       → NOT YET CREATED
