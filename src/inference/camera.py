@@ -24,9 +24,9 @@ _BBOX_PAD = 0.1
 
 _MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/"
-    "hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+    "gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task"
 )
-_MODEL_PATH = Path("artifacts/hand_landmarker.task")
+_MODEL_PATH = Path("artifacts/gesture_recognizer.task")
 
 
 def _check_deps() -> None:
@@ -38,7 +38,7 @@ def _check_deps() -> None:
 
 
 def _ensure_model(path: Path = _MODEL_PATH) -> Path:
-    """Download the HandLandmarker model file if not already present.
+    """Download the GestureRecognizer model file if not already present.
 
     Args:
         path: Destination path for the ``.task`` model file.
@@ -48,7 +48,7 @@ def _ensure_model(path: Path = _MODEL_PATH) -> Path:
     """
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        print(f"Downloading HandLandmarker model → {path} …")
+        print(f"Downloading GestureRecognizer model → {path} …")
         urllib.request.urlretrieve(_MODEL_URL, path)
         print("Download complete.")
     return path
@@ -135,9 +135,10 @@ def _crop_to_feature(
 class CameraSource:
     """Live FeatureSource that reads hand images from a webcam via MediaPipe.
 
-    Uses the MediaPipe Tasks API (HandLandmarker) to detect the hand bounding
-    box, then crops and resizes the region to a 28×28 grayscale image matching
-    the Sign Language MNIST training format.
+    Uses the MediaPipe Tasks API (GestureRecognizer) to detect hand landmarks,
+    optionally classify built-in gestures, and derive a hand bounding box.
+    The detected hand region is then cropped and resized to a 28×28 grayscale
+    image matching the Sign Language MNIST training format.
 
     Implements the ``FeatureSource`` protocol without inheriting from it.
     Returns a zero vector when no hand is detected in the current frame.
@@ -168,16 +169,19 @@ class CameraSource:
 
         resolved = _ensure_model(model_path)
         base_options = mp_python.BaseOptions(model_asset_path=str(resolved))
-        options = mp_vision.HandLandmarkerOptions(
+        options = mp_vision.GestureRecognizerOptions(
             base_options=base_options,
             num_hands=1,
             min_hand_detection_confidence=0.5,
+            min_hand_presence_confidence=0.5,
             min_tracking_confidence=0.5,
         )
-        self._landmarker = mp_vision.HandLandmarker.create_from_options(options)
+        self._recognizer = mp_vision.GestureRecognizer.create_from_options(options)
         self._last_frame: np.ndarray | None = None
         self._last_bbox: tuple[int, int, int, int] | None = None
         self._last_crop: np.ndarray | None = None
+        self._last_gesture_name: str | None = None
+        self._last_gesture_score: float | None = None
 
     @property
     def last_frame(self) -> np.ndarray | None:
@@ -194,12 +198,23 @@ class CameraSource:
         """28×28 grayscale array fed to the classifier, or ``None`` when no hand detected."""
         return self._last_crop
 
+    @property
+    def last_gesture_name(self) -> str | None:
+        """Top MediaPipe gesture label for the last frame, or ``None``."""
+        return self._last_gesture_name
+
+    @property
+    def last_gesture_score(self) -> float | None:
+        """Top MediaPipe gesture score in ``[0, 1]`` for the last frame, or ``None``."""
+        return self._last_gesture_score
+
     def read_features(self) -> np.ndarray:
         """Capture one frame, detect the hand, return a 784-dim feature vector.
 
-        Reads one frame from the webcam, runs MediaPipe HandLandmarker to find
-        the hand bounding box, crops and resizes the region to 28×28 grayscale,
-        and returns the flattened normalised pixel array.
+        Reads one frame from the webcam, runs MediaPipe GestureRecognizer to
+        obtain hand landmarks and optional gesture categories, crops/resizes the
+        detected hand region to 28×28 grayscale, and returns the flattened
+        normalised pixel array.
 
         Returns:
             float32 array of shape ``(784,)`` — zero vector when no hand found.
@@ -216,10 +231,18 @@ class CameraSource:
 
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-        result = self._landmarker.detect(mp_image)
+        result = self._recognizer.recognize(mp_image)
+
+        self._last_gesture_name = None
+        self._last_gesture_score = None
+        if result.gestures and result.gestures[0]:
+            top_gesture = result.gestures[0][0]
+            self._last_gesture_name = top_gesture.category_name
+            self._last_gesture_score = float(top_gesture.score)
 
         if not result.hand_landmarks:
             self._last_bbox = None
+            self._last_crop = None
             return np.zeros(FEATURE_DIM, dtype=np.float32)
 
         bbox = _landmarks_to_bbox(result.hand_landmarks[0], w, h)
@@ -236,4 +259,4 @@ class CameraSource:
     def release(self) -> None:
         """Release the webcam and MediaPipe resources."""
         self._cap.release()
-        self._landmarker.close()
+        self._recognizer.close()
