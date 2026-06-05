@@ -11,7 +11,7 @@ from src.model.classifiers.cnn import train_and_save_cnn
 from src.model.classifiers.random_forest import build_random_forest_classifier
 from src.model.classifiers.svc import build_svc_classifier
 
-DEFAULT_ARTIFACT = Path("artifacts/model.pkl")
+DEFAULT_ARTIFACT = Path("artifacts/svc_model.pkl")
 
 CLASSIFIERS = {
     "svc": build_svc_classifier,
@@ -24,7 +24,7 @@ def build_classifier(name: str) -> ClassifierMixin:
     """Instantiate a classifier by name.
 
     Args:
-        name: One of ``"svc"`` or ``"rf"``.
+        name: One of ``"svc"``, ``"rf"``, ``"cnn"``.
 
     Returns:
         Unfitted sklearn estimator.
@@ -32,9 +32,9 @@ def build_classifier(name: str) -> ClassifierMixin:
     Raises:
         ValueError: If ``name`` is not a recognised classifier key.
     """
-    if name not in CLASSIFIERS or name == "cnn":
+    if name not in CLASSIFIERS:
         raise ValueError(
-            f"Unknown sklearn classifier '{name}'. Choose from: ['svc', 'rf']"
+            f"Unknown sklearn classifier '{name}'. Choose from: ['svc', 'rf', 'cnn']"
         )
     return CLASSIFIERS[name]()
 
@@ -95,7 +95,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=Path,
-        default=Path("data/sign_mnist_train.csv"),
+        default=Path("data/raw/sign_mnist_train.csv"),
         help="Path to the CSV file.",
     )
     parser.add_argument(

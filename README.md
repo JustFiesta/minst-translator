@@ -1,44 +1,91 @@
-# minst-translator
+# pjm-translator
 
 Real-time hand sign classifier based on the Sign Language MNIST dataset.
+
 The app can:
-- train a model (`train`)
+- train a classifier (`train`)
 - evaluate a trained model (`eval`)
-- run inference from CSV row or live webcam (`infer`)
+- run inference from a CSV row or live webcam (`infer`)
 
-Dataset: [Sign Language MNIST (Kaggle)](https://www.kaggle.com/datasets/datamunge/sign-language-mnist/data)
+**Dataset:** [Sign Language MNIST on Kaggle](https://www.kaggle.com/datasets/datamunge/sign-language-mnist/data) —
+27 455 training samples, 7 172 test samples, 24 ASL letter classes (A–Y, no J or Z),
+each sample is a flattened 28×28 grayscale image (`pixel1`…`pixel784`, values 0–255).
 
-## 1. What this project does
+---
 
-Pipeline overview:
-1. Load Sign Language MNIST CSV (`label` + `pixel1..pixel784`).
-2. Normalize pixels to `[0, 1]`.
-3. Train classifier (`svc`, `rf`, or `cnn`) and save model artifacts.
-4. In inference:
-   - `csv` source: classify one dataset row
-   - `camera` source: detect hand via MediaPipe Gesture Recognizer, crop to
-     `28x28`, predict letter
+## 1. Project presentation assumptions
 
-Default paths:
-- dataset: `data/sign_mnist_train.csv`
-- model: `artifacts/model.pkl`
+These are the conditions used during live-inference testing in the lab.
+Deviating from them may reduce prediction accuracy.
 
-## 2. Requirements
+| Condition | Recommended value |
+|---|---|
+| Lighting | Even, stable — no hard shadows on the hand |
+| Hand | Left hand, facing the camera front-on |
+| Camera | DroidCam (or any webcam) as OpenCV source |
+| Mirror | **Off** — disable mirroring in DroidCam / camera app |
+| Background | Plain, uniform colour to reduce false detections |
+
+---
+
+## 2. How it works
+
+The classifier does not recognise gestures semantically — it compares raw pixel
+patterns against patterns seen during training.
+
+**Camera inference pipeline:**
+
+1. A webcam frame is captured.
+2. **MediaPipe Gesture Recognizer** detects the hand and returns landmarks.
+3. A bounding box is computed from the landmarks and the hand region is cropped.
+4. The crop is resized to **28×28**, converted to **grayscale**, and flattened to a
+   784-element float32 vector normalised to `[0, 1]`.
+5. The classifier (`svc`, `rf`, or `cnn`) predicts the letter label.
+
+Because the model operates on raw pixels after normalisation, frame quality
+(lighting, hand position, contrast) directly affects prediction reliability.
+
+---
+
+## 3. Model benchmarks
+
+All three classifiers were trained on the same 80 % split of
+`data/raw/sign_mnist_train.csv` and evaluated on the same held-out test split
+(`data/raw/sign_mnist_test.csv`):
+
+| Model | Artifact | Test accuracy |
+|---|---|:---:|
+| SVC (RBF kernel) | `artifacts/svc_model.pkl` | **0.82** |
+| Random Forest | `artifacts/rf_model.pkl` | **0.82** |
+| CNN (Keras / TF) | `artifacts/cnn_model.keras` | **0.92** |
+
+**Algorithm overview:**
+
+- **SVC (RBF)** — support-vector classifier; finds a non-linear decision boundary
+  in the 784-dimensional feature space using a radial-basis-function kernel.
+- **Random Forest** — ensemble of 200 decision trees; classifies by majority vote.
+- **CNN** — two convolutional blocks (Conv2D → MaxPool) followed by a dense head;
+  learns spatial filters directly from the 28×28 pixel grid.
+
+The architecture diagram is in [`diagrams/architecture.png`](diagrams/architecture.png).
+
+---
+
+## 4. Requirements
 
 - Python `>=3.13`
 - `uv` package manager
-- Webcam (only for `infer --source camera`)
+- DroidCam/webcam (only for `infer --source camera`)
 
 Main dependencies (from `pyproject.toml`):
-- `numpy`
-- `pandas`
-- `scikit-learn`
-- `joblib`
-- `opencv-python`
-- `mediapipe`
-- `tensorflow` (optional, only for `--classifier cnn`)
 
-## 3. Setup and installation
+- `numpy`, `pandas`, `scikit-learn`, `joblib`
+- `opencv-python`, `mediapipe`
+- `tensorflow>=2.21.0`
+
+---
+
+## 5. Setup and installation
 
 ### Windows (PowerShell)
 
@@ -49,7 +96,7 @@ uv venv --python 3.13
 uv sync
 ```
 
-### Linux/macOS
+### Linux / macOS
 
 ```bash
 uv python install 3.13
@@ -58,206 +105,164 @@ source .venv/bin/activate
 uv sync
 ```
 
-## 4. Dataset files
+---
 
-Expected CSV files:
-- `data/sign_mnist_train.csv`
-- `data/sign_mnist_test.csv`
+## 6. Dataset files
 
-Before first run, create `data` directory and put Kaggle files there:
+Expected CSV files (downloaded manually from Kaggle):
 
-Windows (PowerShell):
+- `data/raw/sign_mnist_train.csv`
+- `data/raw/sign_mnist_test.csv`
 
 ```powershell
-New-Item -ItemType Directory -Path data -Force
+# Windows
+New-Item -ItemType Directory -Path data/raw -Force
 ```
-
-Linux/macOS:
 
 ```bash
-mkdir -p data
+# Linux / macOS
+mkdir -p data/raw
 ```
 
-Download dataset from Kaggle:
-- [Sign Language MNIST (Kaggle)](https://www.kaggle.com/datasets/datamunge/sign-language-mnist/data)
+Download: [Sign Language MNIST on Kaggle](https://www.kaggle.com/datasets/datamunge/sign-language-mnist/data)
 
-Then copy extracted files to:
-- `data/sign_mnist_train.csv`
-- `data/sign_mnist_test.csv`
+If the dataset path is wrong the app raises `FileNotFoundError`.
 
-CSV schema:
-- `label` (int class id)
-- `pixel1` ... `pixel784` (grayscale pixel values 0..255)
+---
 
-If dataset path is wrong, project raises `FileNotFoundError`.
-
-## 5. CLI usage (all arguments and flags)
-
-Main entrypoint:
+## 7. CLI usage
 
 ```bash
 uv run python main.py <mode> [options]
 ```
 
-Where `<mode>` is required and must be one of:
-- `train`
-- `eval`
-- `infer`
+`<mode>` is required:
 
-### Global arguments in `main.py`
+| Mode | Description |
+|---|---|
+| `train` | Fit a classifier and save the artifact |
+| `eval` | Evaluate a saved model on the test split |
+| `infer` | Run inference from CSV row or live webcam |
 
-| Argument | Type / Choices | Default | Used in mode | Description |
+### Arguments
+
+| Argument | Choices / type | Default | Modes | Description |
 |---|---|---|---|---|
-| `mode` | `train`, `eval`, `infer` | - | all | Operation mode |
-| `--dataset` | path | `data/sign_mnist_train.csv` | train, eval, infer(csv) | CSV dataset path |
-| `--model` | path | `artifacts/model.pkl` | train, eval, infer | Model artifact path (`.keras` required for `cnn`) |
-| `--classifier` | `svc`, `rf`, `cnn` | `svc` | train | Classifier to train |
-| `--source` | `csv`, `camera` | `csv` | infer | Inference source |
-| `--row` | int | `0` | infer(csv) | CSV row index |
-| `--camera` | int | `0` | infer(camera) | OpenCV camera device index |
+| `--dataset` | path | `data/raw/sign_mnist_train.csv` | train, eval, infer(csv) | CSV dataset path |
+| `--model` | path | `artifacts/svc_model.pkl` | train, eval, infer | Model artifact (use `.keras` for CNN) |
+| `--classifier` | `svc` `rf` `cnn` | `svc` | train | Classifier to train |
+| `--source` | `csv` `camera` | `csv` | infer | Inference input source |
+| `--row` | int | `0` | infer csv | Row index in dataset CSV |
+| `--camera` | int | `0` | infer camera | OpenCV camera device index |
 
 Notes:
-- In `train` mode, `--source`, `--row`, `--camera` are ignored.
-- For `--classifier cnn`, pass `--model` with a `.keras` path (e.g. `artifacts/cnn_model.keras`).
-- In `eval` mode, `--source`, `--row`, `--camera`, `--classifier` are ignored.
-- In `infer --source camera`, `--dataset` is ignored.
+- `--classifier cnn` requires a `--model` path ending in `.keras`.
+- `--source`, `--row`, `--camera` are ignored in `train` mode.
+- `--source`, `--row`, `--camera`, `--classifier` are ignored in `eval` mode.
+- `--dataset` is ignored in `infer --source camera`.
 
-## 6. Command examples
+---
 
-### Train model
+## 8. Command examples
 
-Use default dataset/model with SVC:
+### Train
 
 ```bash
+# SVC (default)
 uv run python main.py train
-```
 
-Train RandomForest and save to custom file:
-
-```bash
+# Random Forest
 uv run python main.py train --classifier rf --model artifacts/rf_model.pkl
+
+# CNN
+uv run python main.py train --classifier cnn --model artifacts/cnn_model.keras \
+    --dataset data/raw/sign_mnist_train.csv
 ```
 
-Train CNN (saves model and label mapping sidecar):
+### Evaluate
 
 ```bash
-uv run python main.py train --classifier cnn --model artifacts/cnn_model.keras
+uv run python main.py eval --model artifacts/svc_model.pkl \
+    --dataset data/raw/sign_mnist_test.csv
 ```
 
-### Evaluate model
+Output: overall accuracy + per-class `classification_report`.
+
+### Inference — CSV row
 
 ```bash
-uv run python main.py eval --model artifacts/model.pkl --dataset data/sign_mnist_test.csv
+uv run python main.py infer --source csv --row 42 \
+    --dataset data/raw/sign_mnist_test.csv --model artifacts/svc_model.pkl
 ```
 
-Output includes:
-- accuracy
-- full `classification_report`
-
-### Inference from CSV row
+### Inference — live webcam
 
 ```bash
-uv run python main.py infer --source csv --row 42 --dataset data/sign_mnist_test.csv --model artifacts/model.pkl
+uv run python main.py infer --source camera --camera 0 --model artifacts/svc_model.pkl
 ```
 
-Output example:
-- true label for row
-- predicted label
+- Opens a webcam window with the hand bounding box overlay.
+- Shows the 28×28 model-input thumbnail in the corner.
+- Press `q` to quit.
 
-### Live webcam inference
+---
+
+## 9. Alternative module CLI
+
+`src/model/train.py` exposes its own `__main__` entry:
 
 ```bash
-uv run python main.py infer --source camera --camera 0 --model artifacts/model.pkl
+uv run python -m src.model.train \
+    --dataset data/raw/sign_mnist_train.csv \
+    --output artifacts/svc_model.pkl \
+    --classifier svc
 ```
 
-Runtime behavior:
-- opens webcam window
-- overlays detected hand bounding box
-- shows `28x28` model input preview
-- press `q` to quit
+---
 
-## 7. Alternative module CLI
+## 10. Development commands
 
-`src/model/train.py` also has standalone CLI:
+| Task | Command |
+|---|---|
+| Run all tests | `uv run pytest` |
+| Run with coverage | `uv run pytest --cov=src --cov-report=term-missing` |
+| Lint | `uv run ruff check src/ tests/` |
+| Format | `uv run ruff format src/ tests/` |
 
-```bash
-uv run python -m src.model.train --dataset data/sign_mnist_train.csv --output artifacts/model.pkl --classifier svc
-```
+---
 
-Arguments there:
-- `--dataset`
-- `--output`
-- `--classifier` (`svc`/`rf`/`cnn`)
+## 11. Troubleshooting
 
-Help for each CLI:
+**`Model artifact not found`** — run `main.py train` first, or point `--model`
+to an existing file.
 
-```bash
-uv run python main.py --help
-uv run python -m src.model.train --help
-```
+**`Cannot open camera at index X`** — check that the webcam is connected and not
+used by another app; try `--camera 1` or `--camera 2`.
 
-## 8. Development commands
+**`row_index … out of range`** — `--row` exceeds the dataset length; choose a
+valid index for the selected `--dataset`.
 
-Run tests:
+**MediaPipe model download** — on the first camera run the app auto-downloads
+`artifacts/gesture_recognizer.task`; ensure internet access is available.
 
-```bash
-uv run pytest
-```
+---
 
-Run tests with coverage:
-
-```bash
-uv run pytest --cov=src --cov-report=term-missing
-```
-
-Lint:
-
-```bash
-uv run ruff check src/ tests/
-```
-
-Format:
-
-```bash
-uv run ruff format src/ tests/
-```
-
-## 9. Troubleshooting
-
-### `Model artifact not found`
-
-Error from `load_model` means `--model` file does not exist.
-Fix:
-1. Train first (`main.py train`), or
-2. Point `--model` to existing `.pkl`.
-
-### `Cannot open camera at index X`
-
-Fix:
-- verify webcam is connected
-- close other apps using webcam
-- try another index (`--camera 1`, `--camera 2`)
-
-### `row_index ... out of range`
-
-`--row` is outside dataset length.
-Use valid row index based on selected `--dataset`.
-
-### MediaPipe model download
-
-On first camera run, project auto-downloads:
-- `artifacts/gesture_recognizer.task`
-
-Make sure internet is available for first download.
-
-## 10. Project structure (high-level)
+## 12. Project structure
 
 ```text
-main.py                  # CLI entrypoint
-src/data/                # CSV ingest, feature matrix, split
-src/model/               # training and evaluation
-src/inference/           # model loading, CSV source, camera source
-tests/                   # pytest tests
-data/                    # input dataset files (downloaded manually)
-artifacts/               # model files (.pkl / .keras / .labels.json / .task)
+main.py                        CLI entrypoint
+src/
+  data/                        ingest · feature extraction · split
+  model/
+    classifiers/               svc.py · random_forest.py · cnn.py
+    train.py                   orchestrates training + artifact saving
+    evaluate.py                accuracy + classification report
+  inference/
+    camera.py                  webcam capture + MediaPipe + 28×28 crop
+    csv_source.py              offline feature source from CSV row
+    predict.py                 load_model · predict_sign
+tests/                         pytest suite mirroring src/
+data/                          Sign Language MNIST CSVs (gitignored)
+artifacts/                     trained model files (gitignored)
+diagrams/                      architecture diagram
 ```

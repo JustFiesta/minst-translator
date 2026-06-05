@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 DATA_PATH = Path("data/sign_mnist_train.csv")
-MODEL_PATH = Path("artifacts/model.pkl")
+MODEL_PATH = Path("artifacts/svc_model.pkl")
 
 
 def _train(dataset: Path, output: Path, classifier: str) -> None:
