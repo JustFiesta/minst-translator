@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-DATA_PATH = Path("data/sign_mnist_train.csv")
+DATA_PATH = Path("data/raw/sign_mnist_train.csv")
 MODEL_PATH = Path("artifacts/svc_model.pkl")
 
 
