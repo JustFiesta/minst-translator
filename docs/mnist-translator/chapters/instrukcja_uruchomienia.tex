@@ -6,6 +6,9 @@
 Poniższy przewodnik umożliwia samodzielne uruchomienie programu od
 konfiguracji środowiska po uruchomienie inferencji na żywo.
 
+UWAGA: Przed rozpoczęciem należy zainstalować menedżera pakietów \texttt{uv}.
+Link do dokumentacji \texttt{uv} znajduje się pod linkiem: \url{https://docs.astral.sh/uv/getting-started/installation/}.
+
 \subsection*{Krok 1: Pobranie repozytorium}
 
 \begin{lstlisting}[style=styleBash, numbers=none, caption={Klonowanie repozytorium}, label=lst:clone]
@@ -36,7 +39,7 @@ uv sync
     \item Przejdź na stronę Kaggle:\\
           \url{https://www.kaggle.com/datasets/datamunge/sign-language-mnist/data}
     \item Pobierz pliki \texttt{sign\_mnist\_train.csv} i \texttt{sign\_mnist\_test.csv}.
-    \item Utwórz katalog docelowy i umieść w nim pobrane pliki:
+    \item Utwórz katalog docelowy \texttt{data/raw/} i umieść w nim pobrane pliki:
 \end{enumerate}
 
 \begin{lstlisting}[style=styleBash, numbers=none, caption={Przygotowanie struktury katalogów na dane}, label=lst:dirs]
